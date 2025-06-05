@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  airtable-predictor-pbn:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "5003:5003"
+    container_name: airtable-runner-pbn
+    working_dir: /app
+    command: /bin/bash -c "python fetch_airtable_pbn.py && python app_pbn.py"
+
+  airtable-predictor-client:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "5004:5004"
+    container_name: airtable-runner-client
+    working_dir: /app
+    command: /bin/bash -c "python fetch_airtable_client.py && python app_client.py"

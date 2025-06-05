@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Linklist Matcher</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+  <div class="max-w-3xl mx-auto py-10 px-6">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">🔗 Linklist Matcher</h1>
+
+    <div class="bg-white p-6 rounded shadow">
+      <form onsubmit="searchLinklist(); return false;">
+        <label class="block mb-2 font-medium">Website</label>
+        <select id="website" class="w-full mb-4 p-2 border rounded">
+          {% for site in websites %}
+          <option value="{{ site }}">{{ site }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="keyword" class="block mb-2 font-medium">Enter a Keyword</label>
+        <input id="keyword" type="text" placeholder="e.g. credit card"
+          class="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+
+        <div class="flex justify-between mt-4">
+          <button type="submit"
+            class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+            Find Linklist
+          </button>
+          <button type="button" onclick="copyLinklist()"
+            class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+            📋 Copy All Linklist
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- RESULTS SECTION -->
+    <div id="result" class="mt-8 hidden">
+      <p id="category" class="text-sm text-white bg-blue-600 inline-block px-3 py-1 rounded mb-4 font-medium"></p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Matched Linklist -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <div>
+              <h2 class="text-xl font-semibold text-blue-700">🔹 Matched Linklist</h2>
+              <p class="text-sm text-gray-500 italic">Top recommendations for your keyword.</p>
+            </div>
+            <button onclick="copyList('linklist')" class="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600">
+              📋 Copy Matched
+            </button>
+          </div>
+          <ul id="linklist" class="list-disc list-inside space-y-1 text-blue-700"></ul>
+        </div>
+
+        <!-- Related Suggestions -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-800">🔸 Related Suggestions</h2>
+              <p class="text-sm text-gray-500 italic">Other relevant but less direct matches.</p>
+            </div>
+            <button onclick="copyList('suggestlist')" class="bg-gray-600 text-white text-sm px-3 py-1 rounded hover:bg-gray-700">
+              📋 Copy Related
+            </button>
+          </div>
+          <ul id="suggestlist" class="list-disc list-inside space-y-1 text-gray-600"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function searchLinklist() {
+      const keyword = document.getElementById("keyword").value.trim();
+      const website = document.getElementById("website").value.trim();
+      if (!keyword) return alert("Please enter a keyword.");
+      if (!website) return alert("Please select a website.");
+
+      try {
+        const response = await fetch("/linklist-pbn/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ keywords: [keyword], website })
+        });
+
+        const result = await response.json();
+        if (result.error) return alert("Error: " + result.error);
+
+        if (!Array.isArray(result.matched_links)) result.matched_links = [];
+        if (!Array.isArray(result.suggested_links)) result.suggested_links = [];
+
+        const linklist = document.getElementById("linklist");
+        const suggestlist = document.getElementById("suggestlist");
+        const category = document.getElementById("category");
+
+        linklist.innerHTML = "";
+        suggestlist.innerHTML = "";
+        category.innerText = "";
+
+        if (result.matched_links.length === 0 && result.suggested_links.length === 0) {
+          document.getElementById("result").classList.remove("hidden");
+          linklist.innerHTML = "<li class='text-red-500'>No results found. Try another keyword.</li>";
+          return;
+        }
+
+        result.matched_links.forEach(html => {
+          const li = document.createElement("li");
+          li.innerHTML = html;
+          linklist.appendChild(li);
+        });
+
+        result.suggested_links.forEach(html => {
+          const li = document.createElement("li");
+          li.innerHTML = html;
+          suggestlist.appendChild(li);
+        });
+
+        category.innerText = "Category: " + result.category;
+        document.getElementById("result").classList.remove("hidden");
+      } catch (err) {
+        alert("Failed to fetch results. Please try again.");
+      }
+    }
+
+    function copyLinklist() {
+      const listItems = document.querySelectorAll("#linklist li, #suggestlist li");
+      const html = [...listItems].map(li => li.innerHTML).join("<br>");
+      const blob = new Blob([html], { type: "text/html" });
+      const data = [new ClipboardItem({ "text/html": blob })];
+      navigator.clipboard.write(data).then(() =>
+        alert("✅ Copied all Linklist and Suggestions")
+      );
+    }
+
+    function copyList(listId) {
+      const listItems = document.querySelectorAll(`#${listId} li`);
+      const html = [...listItems].map(li => li.innerHTML).join("<br>");
+      const blob = new Blob([html], { type: "text/html" });
+      const data = [new ClipboardItem({ "text/html": blob })];
+      navigator.clipboard.write(data).then(() =>
+        alert(`✅ Copied ${listId === 'linklist' ? 'Matched Linklist' : 'Related Suggestions'}`)
+      );
+    }
+  </script>
+</body>
+</html>

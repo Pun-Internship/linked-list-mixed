@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>🔗 Linklist Matcher</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+</head>
+
+<body class="bg-gray-100 p-6 font-sans">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-extrabold text-blue-700 mb-8 border-b pb-2 text-center">
+      🔗 Linklist Matcher
+    </h1>
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+      <div class="mb-4">
+        <label class="block text-lg font-medium mb-2">SEO Name</label>
+        <select class="w-full p-2 border rounded" id="seoName">
+          {% for seo in seoNames %}
+          <option value="{{ seo }}">{{ seo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-lg font-medium mb-2">Project Name</label>
+        <select class="w-full p-2 border rounded" id="projectName">
+          {% for project in initialProjects %}
+          <option value="{{ project }}">{{ project }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="mb-4">
+        <label class="block text-lg font-medium mb-2">Enter a Keyword</label>
+        <input class="w-full p-2 border rounded" id="keyword" placeholder="Type your keyword here" type="text" />
+      </div>
+      <div class="flex space-x-4 justify-between">
+        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" id="searchBtn">
+          Find Linklist
+        </button>
+        <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" id="clearBtn">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Added "justify-center" on small screens -->
+  <div class="flex flex-wrap md:flex-nowrap overflow-x-auto space-x-4 justify-center md:justify-start" id="results">
+    <!-- Result boxes will be dynamically inserted here -->
+  </div>
+
+  <template id="outputBoxTemplate">
+    <div class="p-6 mb-6 border rounded-lg bg-white shadow-lg space-y-6 text-center transition-all duration-300 flex-shrink-0 w-[380px]">
+      <div class="border-b pb-2 font-semibold text-blue-600 text-center">
+        <span class="output-month">📅 Month: </span>
+      </div>
+      <div class="border-b pb-2 font-medium text-blue-600 text-center">
+        <span>🔑 Keyword: </span>
+        <a class="output-keyword text-blue-500 hover:underline" href="#" target="_blank"></a>
+      </div>
+      <div class="border-b pb-4 flex flex-col md:flex-row text-center justify-center items-stretch">
+        <div class="md:w-1/2 md:pr-4 md:border-r border-gray-300 mb-4 md:mb-0">
+          <strong class="text-blue-600 block mb-2">🔗 Internal Links</strong>
+          <div class="output-links mt-2 space-y-1 text-sm"></div>
+        </div>
+        <div class="md:w-1/2 md:pl-4">
+          <strong class="text-blue-600 block mb-2">🤖 Predicted by AI</strong>
+          <div class="output-model mt-2 space-y-1 text-sm"></div>
+        </div>
+      </div>
+      <div class="border-b pb-4 flex flex-col md:flex-row items-center justify-center md:space-x-6">
+        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mb-2 md:mb-0 copy-links">Copy Internal Links</button>
+        <div class="hidden md:block h-6 w-px bg-gray-300"></div>
+        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 copy-model">Copy AI Prediction</button>
+      </div>
+      <div class="text-center">
+        <button class="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 copy-all">📋 Copy All</button>
+      </div>
+    </div>
+  </template>
+
+<script>
+const resultsContainer = document.getElementById("results");
+const template = document.getElementById("outputBoxTemplate");
+const storedResults = [];
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+  document.getElementById("keyword").value = "";
+  resultsContainer.innerHTML = "";
+  storedResults.length = 0;
+});
+
+document.getElementById("searchBtn").addEventListener("click", () => {
+  const keyword = document.getElementById("keyword").value.trim();
+  const seoName = document.getElementById("seoName").value;
+  const projectName = document.getElementById("projectName").value;
+
+  if (!keyword) return;
+
+  fetch("/linked-list-matcher/search", { //# change path here
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ keywords: [keyword], seoName, projectName }),
+  })
+    .then(response => {
+      if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+      return response.json();
+    })
+    .then(data => {
+      console.log("Received data:", data); 
+      if (data.error || !data.keyword || !data.keyword.name) {
+        alert("⚠️ No data matched your input.");
+        return;
+      }
+
+      const clone = template.content.cloneNode(true);
+      clone.querySelector(".output-month").textContent = `📅 Month: ${data.month}`;
+      const keywordLink = clone.querySelector(".output-keyword");
+
+      if (data.keyword.url) {
+        keywordLink.textContent = data.keyword.name;
+        keywordLink.href = data.keyword.url;
+      } else {
+        const textNode = document.createTextNode(data.keyword.name);
+        keywordLink.replaceWith(textNode);
+      }
+
+      const linksContainer = clone.querySelector(".output-links");
+      const modelContainer = clone.querySelector(".output-model");
+
+      linksContainer.innerHTML = "";
+      modelContainer.innerHTML = "";
+
+      // Parse internal links from markdown to dictionary
+      const linkMatches = {};
+      const internalLines = (data.raw_internal_link_text || "").split("\n").filter(Boolean);
+
+      internalLines.forEach(line => {
+        const match = line.match(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/);
+        if (match) {
+          linkMatches[match[1]] = match[2];
+        } else {
+          // plain text (not a markdown link)
+          const span = document.createElement("span");
+          span.textContent = line;
+          span.className = "block text-gray-700";
+          linksContainer.appendChild(span);
+        }
+      });
+
+      // Display parsed links
+      Object.entries(linkMatches).forEach(([text, url]) => {
+        const a = document.createElement("a");
+        a.textContent = text;
+        a.href = url;
+        a.target = "_blank";
+        a.className = "block text-blue-500 hover:underline";
+        linksContainer.appendChild(a);
+      });
+
+      // Display AI predictions with fuzzy match
+      // Display AI predictions: match with internal link text exactly
+// Display AI predictions with fuzzy match
+if (data.model_output && data.model_output.length > 0) {
+  const knownLinks = {};
+  (data.links || []).forEach(link => {
+    knownLinks[link.title.trim()] = link.url;
+  });
+
+  data.model_output.forEach(obj => {
+  const text = obj.text?.trim?.() || "";
+  const url = obj.url?.trim?.() || "#";
+
+  const a = document.createElement("a");
+  a.textContent = text;
+  a.href = url;
+  a.target = "_blank";
+  a.className = "block text-blue-500 hover:underline";
+  modelContainer.appendChild(a);
+});
+
+} else {
+  modelContainer.innerHTML = '<span class="text-gray-500 italic">No model output</span>';
+}
+
+      clone.querySelector(".copy-links").onclick = () => copyElementAsLinks(linksContainer);
+      clone.querySelector(".copy-model").onclick = () => copyElementAsLinks(modelContainer);
+      clone.querySelector(".copy-all").onclick = () => {
+        const all = [...linksContainer.querySelectorAll("a, span"), ...modelContainer.querySelectorAll("a, span")];
+        const html = all.map(el => el.tagName === "A"
+          ? `<a href="${el.href}" target="_blank">${el.textContent}</a>`
+          : el.textContent).join("<br>");
+        copyHTML(html);
+      };
+
+      resultsContainer.appendChild(clone);
+    })
+    .catch(err => {
+      console.error("❌ Fetch failed:", err);
+      alert("❌ Error fetching linklist data.");
+    });
+});
+
+function copyElementAsLinks(container) {
+  const links = Array.from(container.querySelectorAll("a, span"));
+  if (links.length === 0) return;
+  const html = links.map(el => el.tagName === "A"
+    ? `<a href="${el.href}" target="_blank">${el.textContent}</a>`
+    : el.textContent).join("<br>");
+  copyHTML(html);
+}
+
+function copyHTML(html) {
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+  document.body.appendChild(temp);
+  const range = document.createRange();
+  range.selectNodeContents(temp);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand("copy");
+  sel.removeAllRanges();
+  document.body.removeChild(temp);
+}
+
+document.getElementById("seoName").addEventListener("change", function () {
+  const seoName = this.value;
+  const projectSelect = document.getElementById("projectName");
+  projectSelect.disabled = true;
+
+  fetch("/linked-list-matcher/get-projects", { //# change path here
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seoName })
+  })
+    .then(response => {
+      if (!response.ok) throw new Error("Network response was not ok");
+      return response.json();
+    })
+    .then(data => {
+      console.log("Received data:", data); 
+      projectSelect.innerHTML = "";
+      if (data.projects && data.projects.length > 0) {
+        data.projects.forEach(project => {
+          const option = document.createElement("option");
+          option.value = project;
+          option.textContent = project;
+          projectSelect.appendChild(option);
+        });
+      } else {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "No projects available";
+        projectSelect.appendChild(option);
+      }
+      projectSelect.disabled = false;
+    })
+    .catch(error => {
+      console.error("❌ Error loading projects:", error);
+      projectSelect.innerHTML = '<option value="">Error loading projects</option>';
+      projectSelect.disabled = false;
+    });
+});
+</script>
+
+</body>
+</html>

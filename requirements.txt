@@ -1,0 +1,7 @@
+flask
+pandas
+requests
+sentence-transformers
+faiss-cpu
+numpy
+python-dotenv
