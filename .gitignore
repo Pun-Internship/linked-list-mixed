@@ -1,0 +1,93 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+fetch_airtable_pbn.log
+app_pbn.log
+webhook_pbn.log
+
+# Dataset output
+dataset_pbn.csv
+
+# Runtime files
+last_updated_time_pbn.json
+
+# Docker
+*.pid
+*.tar
+*.img
+*.bak
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# macOS metadata
+.DS_Store
+
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# System files
+Thumbs.db
+
+# HTML templates (kept, not ignored)
+!templates/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment variables
+.env
+
+# Logs
+*.log
+logs/
+fetch_airtable_pbn.log
+app_pbn.log
+webhook_pbn.log
+
+# Dataset output
+dataset_pbn.csv
+
+# Runtime files
+last_updated_time_pbn.json
+
+# Docker
+*.pid
+*.tar
+*.img
+*.bak
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# macOS metadata
+.DS_Store
+
+# Python virtual environment
+venv/
+env/
+.venv/
+
+# System files
+Thumbs.db
+
+# HTML templates (kept, not ignored)
+!templates/
