@@ -56,15 +56,15 @@ __pycache__/
 # Logs
 *.log
 logs/
-fetch_airtable_pbn.log
-app_pbn.log
-webhook_pbn.log
+fetch_airtable_client.log
+app_client.log
+webhook_client.log
 
 # Dataset output
-dataset_pbn.csv
+dataset_client.csv
 
 # Runtime files
-last_updated_time_pbn.json
+last_updated_time.json
 
 # Docker
 *.pid
@@ -91,3 +91,8 @@ Thumbs.db
 
 # HTML templates (kept, not ignored)
 !templates/
+
+#temporay file
+tempy.html
+tempyy.py
+tempyyy.py
